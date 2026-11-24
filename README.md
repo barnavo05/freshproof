@@ -17,15 +17,20 @@ match the real defect? FreshProof measures this instead of assuming it.
 
 ## Status
 
-Early stage. Repo structure, label schema, and evidence metrics are in place.
-Data collection comes next.
+Early stage.
+
+- Done: label schema and loader, item-based data splits, evidence metrics,
+  baseline model (ResNet18 with produce type and grade heads), training script
+- Next: collect the first photos, train the baseline, add shelf life and
+  uncertainty
 
 ## Project layout
 
     docs/            data collection protocol and roadmap
     configs/         default settings
-    data/            dataset layout (data itself is not in git)
-    src/freshproof/  data schema and evaluation metrics
+    data/            dataset layout (the data itself is not in git)
+    scripts/         training script
+    src/freshproof/  data, models and evaluation code
     tests/           unit tests
 
 ## Quick start
@@ -34,6 +39,15 @@ Data collection comes next.
     source .venv/bin/activate
     pip install -r requirements.txt
     PYTHONPATH=src pytest
+
+To train, install the extra requirements and point the script at your data:
+
+    pip install -r requirements-train.txt
+    PYTHONPATH=src python scripts/train.py --data-root data --epochs 10 --pretrained
+
+Splits are made by item, not by photo, so daily photos of the same tomato never
+end up on both sides of the split. The holdout set is only scored when you pass
+`--eval-holdout`, and that should happen once, at the very end.
 
 ## Evidence metrics
 
