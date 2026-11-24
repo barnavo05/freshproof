@@ -30,6 +30,8 @@ See `src/freshproof/data/schema.py`. In short:
   daily (this is the ground truth for shelf life)
 - a defect mask: the pixels where the defect actually is
 
+Use the labeling tool for all of this. See docs/labeling.md.
+
 ## Shelf life ground truth
 
 Pick 20 to 30 items per type, photograph them daily until they spoil. This gives

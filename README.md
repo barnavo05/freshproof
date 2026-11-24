@@ -37,9 +37,18 @@ Early stage.
       models/        baseline classifier
       evaluation/    evidence metrics (does the highlight match the defect)
       uncertainty/   calibration, temperature scaling, abstain threshold
+      labeling/      local tool for painting defects and saving labels
       service/       scan API, predictor interface, evidence overlay
       synthetic.py   fake produce photos for testing the pipeline
     tests/           unit tests
+
+## Label your photos
+
+A small local tool lets you paint over defects and save grades without
+touching the CSV by hand. See docs/labeling.md.
+
+    pip install -r requirements-api.txt
+    PYTHONPATH=src python scripts/label_tool.py --data-root data
 
 ## Try it without real photos
 
