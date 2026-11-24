@@ -1,6 +1,7 @@
 import pytest
 
-from freshproof.data import Grade, LightCondition, load_records
+from freshproof.data import Grade, LightCondition, PhotoRecord, load_records
+from freshproof.data.labels import upsert_record, write_records
 
 HEADER = (
     "photo_id,produce_type,grade,light,phone_model,item_id,"
@@ -56,3 +57,41 @@ def test_grade_a_with_mask_is_caught_on_load(tmp_path):
     path = _write(tmp_path, "p1,tomato,A,daylight,phoneA,,m.png,,\n")
     with pytest.raises(ValueError, match="line 2"):
         load_records(path)
+
+
+def _record(photo_id="p1", **kw):
+    base = dict(
+        photo_id=photo_id,
+        produce_type="tomato",
+        grade=Grade.B,
+        light=LightCondition.SHADE,
+        phone_model="phoneA",
+    )
+    base.update(kw)
+    return PhotoRecord(**base)
+
+
+def test_write_then_load_round_trip(tmp_path):
+    path = tmp_path / "labels.csv"
+    records = [
+        _record("p1", days_until_spoiled=3.0, item_id="t1", defect_mask_path="masks/p1.png"),
+        _record("p2", grade=Grade.A),
+    ]
+    write_records(path, records)
+    assert load_records(path) == records
+
+
+def test_upsert_creates_file_and_appends(tmp_path):
+    path = tmp_path / "data" / "labels.csv"
+    upsert_record(path, _record("p1"))
+    upsert_record(path, _record("p2"))
+    assert [r.photo_id for r in load_records(path)] == ["p1", "p2"]
+
+
+def test_upsert_replaces_same_photo(tmp_path):
+    path = tmp_path / "labels.csv"
+    upsert_record(path, _record("p1", grade=Grade.B))
+    upsert_record(path, _record("p1", grade=Grade.REJECT))
+    records = load_records(path)
+    assert len(records) == 1
+    assert records[0].grade is Grade.REJECT

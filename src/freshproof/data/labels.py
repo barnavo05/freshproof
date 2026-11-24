@@ -9,6 +9,10 @@ from typing import Optional
 from .schema import Grade, LightCondition, PhotoRecord
 
 REQUIRED_COLUMNS = ("photo_id", "produce_type", "grade", "light", "phone_model")
+LABEL_COLUMNS = (
+    "photo_id", "produce_type", "grade", "light", "phone_model",
+    "item_id", "defect_mask_path", "days_until_spoiled", "labeler",
+)
 
 
 def _blank_to_none(value: Optional[str]) -> Optional[str]:
@@ -58,3 +62,41 @@ def load_records(csv_path: str | Path) -> list[PhotoRecord]:
             seen.add(record.photo_id)
             records.append(record)
     return records
+
+
+def _record_to_row(record: PhotoRecord) -> dict[str, str]:
+    days = record.days_until_spoiled
+    return {
+        "photo_id": record.photo_id,
+        "produce_type": record.produce_type,
+        "grade": record.grade.value,
+        "light": record.light.value,
+        "phone_model": record.phone_model,
+        "item_id": record.item_id or "",
+        "defect_mask_path": record.defect_mask_path or "",
+        "days_until_spoiled": "" if days is None else f"{days:g}",
+        "labeler": record.labeler,
+    }
+
+
+def write_records(csv_path: str | Path, records: list[PhotoRecord]) -> None:
+    """Write all records. Goes through a temp file so a crash cannot corrupt labels.csv."""
+    path = Path(csv_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp = path.with_name(path.name + ".tmp")
+    with temp.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=LABEL_COLUMNS)
+        writer.writeheader()
+        for record in records:
+            writer.writerow(_record_to_row(record))
+    temp.replace(path)
+
+
+def upsert_record(csv_path: str | Path, record: PhotoRecord) -> None:
+    """Add the record, or replace the existing row with the same photo_id."""
+    path = Path(csv_path)
+    existing = load_records(path) if path.exists() else []
+    merged = [record if r.photo_id == record.photo_id else r for r in existing]
+    if not any(r.photo_id == record.photo_id for r in existing):
+        merged.append(record)
+    write_records(path, merged)
