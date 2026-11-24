@@ -6,7 +6,7 @@ import base64
 import io
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from PIL import Image
+from PIL import Image, ImageOps
 
 from .overlay import render_overlay
 from .predictor import Predictor
@@ -36,7 +36,8 @@ def create_app(
         try:
             image = Image.open(io.BytesIO(data))
             image.load()
-            image = image.convert("RGB")
+            # Phone photos may be stored sideways with a rotation flag.
+            image = ImageOps.exif_transpose(image).convert("RGB")
         except (OSError, ValueError, SyntaxError, Image.DecompressionBombError):
             raise HTTPException(status_code=400, detail="file is not a valid image")
 

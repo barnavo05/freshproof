@@ -1,7 +1,8 @@
 """PyTorch dataset that reads photos listed in labels.csv.
 
 Photos are looked up by photo_id inside <root>/raw with a .jpg, .jpeg or .png
-extension. Import this module only when torch is installed.
+extension, and opened upright (phone rotation applied). Import this module only
+when torch is installed.
 """
 
 from __future__ import annotations
@@ -9,23 +10,16 @@ from __future__ import annotations
 from pathlib import Path
 
 import torch
-from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
+from .images import find_image, list_photos, load_oriented
 from .schema import Grade, PhotoRecord
 
-IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png")
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
-
-def find_image(raw_dir: Path, photo_id: str) -> Path:
-    for ext in IMAGE_EXTENSIONS:
-        candidate = raw_dir / f"{photo_id}{ext}"
-        if candidate.exists():
-            return candidate
-    raise FileNotFoundError(f"no image found for photo_id {photo_id} in {raw_dir}")
+__all__ = ["PhotoDataset", "build_transform", "find_image"]
 
 
 def build_transform(image_size: int, train: bool) -> transforms.Compose:
@@ -54,18 +48,25 @@ class PhotoDataset(Dataset):
         self.produce_index = {name: i for i, name in enumerate(produce_types)}
         self.grade_index = {grade: i for i, grade in enumerate(Grade)}
         self.transform = build_transform(image_size, train)
+
         unknown = {r.produce_type for r in records} - set(self.produce_index)
         if unknown:
             raise ValueError(f"produce types not in the class list: {sorted(unknown)}")
+
+        self.paths = list_photos(self.raw_dir)
+        missing = [r.photo_id for r in records if r.photo_id not in self.paths]
+        if missing:
+            shown = ", ".join(missing[:5])
+            raise FileNotFoundError(
+                f"{len(missing)} photos listed in labels.csv are not in {self.raw_dir}: {shown}"
+            )
 
     def __len__(self) -> int:
         return len(self.records)
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, int, int]:
         record = self.records[index]
-        path = find_image(self.raw_dir, record.photo_id)
-        with Image.open(path) as img:
-            image = self.transform(img.convert("RGB"))
+        image = self.transform(load_oriented(self.paths[record.photo_id]))
         return (
             image,
             self.produce_index[record.produce_type],

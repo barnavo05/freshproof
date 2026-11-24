@@ -43,3 +43,20 @@ def test_missing_image_raises(tmp_path):
 def test_unknown_produce_type_rejected(tmp_path):
     with pytest.raises(ValueError):
         PhotoDataset([_record(produce="mango")], tmp_path, ["tomato"])
+
+
+def test_missing_photo_is_reported_up_front(tmp_path):
+    (tmp_path / "raw").mkdir()
+    with pytest.raises(FileNotFoundError, match="p1"):
+        PhotoDataset([_record()], tmp_path, ["tomato"])
+
+
+def test_rotated_phone_photo_is_used_upright(tmp_path):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    exif = Image.Exif()
+    exif[0x0112] = 6  # stored sideways, should display rotated
+    Image.new("RGB", (80, 40), (200, 40, 40)).save(raw / "p1.jpg", exif=exif)
+    ds = PhotoDataset([_record()], tmp_path, ["tomato"], image_size=32)
+    image, _, _ = ds[0]
+    assert tuple(image.shape) == (3, 32, 32)

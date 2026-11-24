@@ -71,6 +71,17 @@ def test_high_confidence_does_not_flag():
     assert _post(client, _png_bytes()).json()["needs_manual_check"] is False
 
 
+def test_rotated_phone_photo_overlay_is_upright():
+    exif = Image.Exif()
+    exif[0x0112] = 6
+    buf = io.BytesIO()
+    Image.new("RGB", (40, 30), (200, 200, 200)).save(buf, format="JPEG", exif=exif)
+    client = TestClient(create_app(StubPredictor()))
+    body = _post(client, buf.getvalue(), "p.jpg", "image/jpeg").json()
+    overlay = Image.open(io.BytesIO(base64.b64decode(body["evidence_overlay_png_base64"])))
+    assert overlay.size == (30, 40)
+
+
 def test_non_image_rejected():
     client = TestClient(create_app(StubPredictor()))
     response = _post(client, b"this is not an image", "x.txt", "text/plain")
