@@ -1,0 +1,12 @@
+project: freshproof
+
+data:
+  root: data
+  image_size: 224
+  holdout_fraction: 0.15
+  seed: 42
+
+evidence:
+  iou_threshold: 0.5
+
+grades: [A, B, C, reject]
