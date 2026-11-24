@@ -18,3 +18,4 @@ data/processed/
 
 # training outputs
 runs/
+data_synth/
