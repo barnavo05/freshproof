@@ -40,6 +40,14 @@ class PhotoRecord:
     days_until_spoiled: Optional[float] = None
     # Which labeler produced this record, for agreement checks.
     labeler: str = "unknown"
+    # The physical item in the photo. Daily photos of the same tomato share one
+    # item_id so data splits can keep them together and avoid leakage.
+    item_id: Optional[str] = None
+
+    @property
+    def group_id(self) -> str:
+        """Key used for splitting: the item if known, else the photo itself."""
+        return self.item_id or self.photo_id
 
     def validate(self) -> None:
         if not self.photo_id:
