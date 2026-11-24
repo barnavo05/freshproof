@@ -20,18 +20,42 @@ match the real defect? FreshProof measures this instead of assuming it.
 Early stage.
 
 - Done: label schema and loader, item-based data splits, evidence metrics,
-  baseline model (ResNet18 with produce type and grade heads), training script
-- Next: collect the first photos, train the baseline, add shelf life and
-  uncertainty
+  baseline model (ResNet18 with produce type and grade heads), training script,
+  calibration and "check by hand" threshold, synthetic data generator, scan API
+  with a stand-in model
+- Next: collect the first real photos, train the baseline, add shelf life
+  regression, plug the trained model into the API
 
 ## Project layout
 
     docs/            data collection protocol and roadmap
     configs/         default settings
     data/            dataset layout (the data itself is not in git)
-    scripts/         training script
-    src/freshproof/  data, models and evaluation code
+    scripts/         training script and local API server
+    src/freshproof/
+      data/          label schema, loader, item-based splits, torch dataset
+      models/        baseline classifier
+      evaluation/    evidence metrics (does the highlight match the defect)
+      uncertainty/   calibration, temperature scaling, abstain threshold
+      service/       scan API, predictor interface, evidence overlay
+      synthetic.py   fake produce photos for testing the pipeline
     tests/           unit tests
+
+## Try it without real photos
+
+The synthetic generator draws fake produce with known defects. It is only for
+checking that the pipeline runs. Never report its results as real results.
+
+    PYTHONPATH=src python -m freshproof.synthetic --out data_synth --items 8 --days 6
+
+To try the scan API with the demo stand-in model:
+
+    pip install -r requirements-api.txt
+    PYTHONPATH=src python scripts/serve.py
+
+Then open http://127.0.0.1:8000/docs and upload a photo to /scan. The response
+has a grade, a confidence, a `needs_manual_check` flag, and a PNG overlay that
+shows the evidence.
 
 ## Quick start
 
