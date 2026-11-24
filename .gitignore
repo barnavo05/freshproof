@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.env
+*.egg-info/
+dist/
+build/
+
+# raw data and model weights stay out of git
+data/raw/
+data/processed/
+*.pt
+*.onnx
+*.ckpt
+.DS_Store
